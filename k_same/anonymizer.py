@@ -3,37 +3,43 @@ from math import sqrt
 from sklearn.decomposition import IncrementalPCA
 from matplotlib import pyplot as plt
 
-PCA_N = 25
+PCA_N = 30
 
 
 class Anonymizer:
     def __init__(self):
         self.M = None
         self.mean = None
+        self.normalized_mean = None
         self.std = None
         self.A = None
         self.pca = None
-        self.facespace = None
+        self.face_space = None
         self.normalized_gallery = None
+        self.normalized_training = None
+        self.anonimized
 
     def setup(self, gallery, training, shape):
         # assumed that each image in gallery and training is transformed to 1D np array
         # each face is a row
-        self.M = training.shape[0]
+
+        self.M = training.shape[0]  # number of images
+        self.A = np.zeros(shape=(self.M, training.shape[1]))  # difference matrix
 
         self.mean = self.average(training)
         self.std = np.std(training, axis=0)
-
-        self.A = np.zeros(shape=(self.M, training.shape[1]))
-
-        self.normalized_training = self.normalize(training)
-        self.normalized_gallery = self.normalize(gallery)
-
+        self.normalized_training = self.normalize(training,
+                                                  self.mean,
+                                                  self.std)
+        self.normalized_gallery = self.normalize(training,
+                                                  self.mean,
+                                                  self.std)
+        self.normalized_mean = self.mean/self.std
 
         for indx in range(0, self.M):
-            self.A[indx, :] = (training[indx, :] - self.mean)
+            self.A[indx, :] = (self.normalized_training[indx, :])
 
-        self.pca = IncrementalPCA(n_components=PCA_N, whiten=True)
+        self.pca = IncrementalPCA(n_components=PCA_N, whiten=False)
         self.pca.fit(self.A)
         # self.img_pca = self.pca.transform(self.img_average.reshape((-1,1)))
         # print(pca.components_.shape)
@@ -41,29 +47,28 @@ class Anonymizer:
         # plt.show()
         # plt.plot(self.pca.explained_variance_ratio_)
         # plt.show()
-        self.facespace = self.pca.transform(self.A)
-
+        self.face_space = self.pca.transform(self.normalized_gallery)  # faces in the PCA space
+                                            #It is the same as A
     def recognize(self, img):
-        img = (img - self.mean) / self.std
+        img = self.normalize_img(img, self.mean, self.std)
         img_ = np.dot(self.pca.components_, img)
         match = np.zeros(shape=(self.M, 2))
-        for indx in range(0, self.facespace.shape[0]):
+        for indx in range(0, self.face_space.shape[0]):
             match[indx, 0] = indx
-            match[indx, 1] = np.linalg.norm(img_ - self.facespace[indx, :])
+            match[indx, 1] = np.linalg.norm(img_ - self.face_space[indx, :])
         return match[np.argsort(match[:, -1])]
 
     def k_same_pixel(self, H, k, shape):
         self.setup(H, H, shape)
-        average_ = np.dot(self.pca.components_, self.mean / self.std)
 
         for indx in range(100, 110):
             match = self.recognize(H[indx, :])
             if H.shape[0] < 2 * k: k = H.shape[0]
-            average = np.zeros(shape=(k,H.shape[1]))
+            average = np.zeros(shape=(k, H.shape[1]))
             for i in range(0, k):
-                average[i, :] = H[int(match[i][0]), :]
+                average[i, :] = self.normalized_training[int(match[i][0]), :]
                 # print(int(match[i][0]))
-            average = self.average(average)
+            average = self.average(average) * self.std + self.mean
             result = average
             plt.imshow(H[indx, :].reshape(shape), cmap='gray', vmin=0, vmax=255)
             plt.show()
@@ -75,33 +80,36 @@ class Anonymizer:
 
     def k_same_eigen(self, H, k, shape):
         self.setup(H, H, shape)
-        average_ = np.dot(self.pca.components_, self.mean)
+
+        #average_ = np.dot(self.pca.components_, self.normalized_mean)
 
         for indx in range(100, 110):
             match = self.recognize(H[indx, :])
             if H.shape[0] < 2 * k: k = H.shape[0]
             average = np.zeros(shape=(k, PCA_N))
             for i in range(0, k):
-                average[i, :] = self.facespace[int(match[i][0]), :]
+                average[i, :] = self.face_space[int(match[i][0]), :]
+                if i == 0: print(int(match[i][0]))
             average = self.average(average)
-            #average = np.add(average_, average)
-            result = self.pca.inverse_transform(average)
-            result = np.add(self.mean, result)
-            plt.imshow(H[indx, :].reshape(shape), cmap='gray', vmin=0, vmax=255)
-            plt.show()
-            plt.imshow(result.reshape(shape), cmap='gray')
-            plt.show()
+            result = self.pca.inverse_transform(average) *self.std + self.mean
+            #plt.imshow(H[indx, :].reshape(shape), cmap='gray', vmin=0, vmax=255)
+            #plt.show()
+            #plt.imshow(result.reshape(shape), cmap='gray')
+            #plt.show()
 
-        plt.imshow(self.mean.reshape(shape), cmap='gray', vmin=0, vmax=255)
-        plt.show()
+        #plt.imshow(self.mean.reshape(shape), cmap='gray', vmin=0, vmax=255)
+        #plt.show()
 
     @staticmethod
     def average(image_set):
         return np.mean(image_set, axis=0)
 
-    def normalize(self, image_set):
+    def normalize(self, image_set, mean, std):
         normalized = np.zeros(shape=image_set.shape)
         for indx in range(0, self.M):
             img = image_set[indx, :]
-            normalized[indx, :] = (img - img.min())/ (img.max()- img.min())
+            normalized[indx, :] = (img - mean) / std
         return normalized
+
+    def normalize_img(self, img, mean,std):
+        return (img - mean) /std
