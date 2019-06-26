@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import os
 from matplotlib import pyplot as plt
+
 CASC_PATH = "haarcascades/haarcascade_frontalface_default.xml"
 MASK_PATH = 'mask/'
 
