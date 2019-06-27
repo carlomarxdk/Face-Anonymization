@@ -25,10 +25,11 @@ def main():
     #A.k_same_looseM(gallery, 10, shape)
 
     #A.process('pixel', gallery, 100, shape) ## pixel eigen same
-    #for i in range(1,101):
-    #    A.process('eigen', gallery, i, shape)
-    #for i in range(1,101):
-    #    A.process('same', gallery, i, shape)
+    #A.process('eigen', gallery, 2, shape)
+    for i in range(1,101):
+       A.process('eigen', gallery, i, shape)
+    for i in range(1,101):
+        A.process('same', gallery, i, shape)
 
 
 if __name__ == '__main__':

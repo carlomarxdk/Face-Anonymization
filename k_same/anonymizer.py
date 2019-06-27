@@ -95,13 +95,13 @@ class Anonymizer:
             for i in range(0, k):
                 average[i, :] = self.face_space[int(match[i][0]), :]
             average = self.average(average)
-            result = self.pca.inverse_transform(average) *self.std + self.mean
+            result = self.pca.inverse_transform(average) * self.std + self.mean
             #plt.imshow(H[indx, :].reshape(shape), cmap='gray', vmin=0, vmax=255)
             #plt.show()
             #plt.imshow(result.reshape(shape), cmap='gray')
             #plt.show()
             self.anonimized[indx, :] = result
-            return self.anonimized
+        return self.anonimized
 
         #plt.imshow(self.mean.reshape(shape), cmap='gray', vmin=0, vmax=255)
         #plt.show()
@@ -143,9 +143,9 @@ class Anonymizer:
         if method == 'pixel':
             output = self.k_same_pixel(gallery, k, shape)
         elif method == 'eigen':
-            output = self.k_same_pixel(gallery, k, shape)
+            output = self.k_same_eigen(gallery, k, shape)
         elif method == 'same':
-            output = self.k_same_pixel(gallery, k, shape)
+            output = self.k_same_looseM(gallery, k, shape)
 
         print('Saving images', self.anonimized.shape)
         path = 'results'+ '/' + method + '/'+ str(k)

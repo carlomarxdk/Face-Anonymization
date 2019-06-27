@@ -47,22 +47,42 @@ def _face_encodings_(face_image, known_face_locations=None, num_jitters=1):
 
 
 def main():
-    text_in = input('SYS:: Method to becnhmark [pixel, eigen, same, blur, pixelated, noise]:')
-    METHOD = str(text_in)
-    if METHOD not in ['pixel', 'eigen', 'same', 'blur', 'pixelated', 'noise']: raise Exception('Wrong Method')
-    print('SYS:: Chosen method is', METHOD)
-    text_in = input('SYS:: Method to becnhmark [naive, reverse, parrot]:')
-    TYPE = str(text_in)
-    print('SYS:: Chosen type:', TYPE)
+    text_in = input('SYS:: Run all tests? [yes,no]')
+    auto = str(text_in)
+    if auto == 'yes':
+        type_list = ['reverse', 'parrot']
+        method_list = ['pixel', 'eigen', 'same', 'blur', 'pixelated', 'noise']
 
-    if TYPE == 'naive':
-        naive(METHOD)
-    elif TYPE == 'reverse':
-        reverse(METHOD)
-    elif TYPE == 'parrot':
-        parrot(METHOD)
+        for type_item in type_list:
+            TYPE = type_item
+            print('SYS:: Chosen type:', TYPE)
+            for method_item in method_list:
+                METHOD = method_item
+                print('SYS:: Chosen method is', METHOD)
+                if TYPE == 'naive':
+                    naive(METHOD)
+                elif TYPE == 'reverse':
+                    reverse(METHOD)
+                elif TYPE == 'parrot':
+                    parrot(METHOD)
     else:
-        raise Exception('Wrong Type')
+        text_in = input('SYS:: Method to becnhmark [pixel, eigen, same, blur, pixelated, noise]:')
+        METHOD = str(text_in)
+        if METHOD not in ['pixel', 'eigen', 'same', 'blur', 'pixelated', 'noise']: raise Exception('Wrong Method')
+        print('SYS:: Chosen method is', METHOD)
+        text_in = input('SYS:: Method to becnhmark [naive, reverse, parrot]:')
+        TYPE = str(text_in)
+        print('SYS:: Chosen type:', TYPE)
+
+        if TYPE == 'naive':
+            naive(METHOD)
+        elif TYPE == 'reverse':
+            reverse(METHOD)
+        elif TYPE == 'parrot':
+            parrot(METHOD)
+        else:
+            raise Exception('Wrong Type')
+
 
 def parrot(method):
     output = list()
@@ -74,13 +94,12 @@ def parrot(method):
     for k in range_:
         load_gallery('parrot', NUM_IMG, method=method, k=k)
         t = stats('parrot', method, k)
-        print(t)
+        print('SYS:: ', t)
         output.append(t)
 
     path_ = TEST_PATH + '/stats/' + method + '_' + 'parrot' + '_' + 'result.csv'
 
     np.savetxt(path_, output, delimiter=',')
-
 
 
 def reverse(method):
@@ -93,7 +112,7 @@ def reverse(method):
     for k in range_:
         load_gallery('reverse', NUM_IMG, method=method, k=k)
         t = stats('reverse', method, k)
-        print(t)
+        print('SYS::', t)
         output.append(t)
 
     path_ = TEST_PATH + '/stats/' + method + '_' + 'reverse' + '_' + 'result.csv'
@@ -106,7 +125,7 @@ def naive(method):
     output = list()
     for k in range(1, 101):
         t = stats('naive', method, k)
-        print(t)
+        print('SYS:: ', t)
         output.append(t)
 
     path_ = TEST_PATH + '/stats/' + method + '_' + 'naive' + '_' + 'result.csv'
@@ -122,29 +141,29 @@ def load_gallery(type_: 'str', num_img: 'int', method='none', k=0):
         path = GALLERY_PATH
     elif type_ == 'reverse':
         path = TEST_PATH + '/' + method + '/' + str(k)
-        if k == 0: raise Exception('Wrong Reference')
+        if k == 0: raise Exception('SYS:: Wrong Reference')
     elif type_ == 'parrot':
         path = TEST_PATH + '/' + method + '/' + str(k)
-        if k == 0: raise Exception('Wrong Reference')
+        if k == 0: raise Exception('SYS:: Wrong Reference')
     else:
-        raise Exception('Wrong Type')
+        raise Exception('SYS:: Wrong Type')
 
     for index in range(0, num_img):
         image_path = path + '/' + str(index) + '.png'
         img = face_recognition.load_image_file(image_path)
         encodings = _face_encodings_(img, num_jitters=1)
         if len(encodings) == 0:
-            #print("WARNING: No faces found in {}. Ignoring file.".format(index))
+            # print("WARNING: No faces found in {}. Ignoring file.".format(index))
             pass
         elif len(encodings) > 1:
-            #print("WARNING: More than one face found in {}. Only considering the first face.".format(index))
+            # print("WARNING: More than one face found in {}. Only considering the first face.".format(index))
             known_encodings.append(encodings[0])
             known_index.append(index)
         else:
             known_encodings.append(encodings[0])
             known_index.append(index)
 
-    print('Reference Images are processed', len(known_encodings))
+    print('SYS:: Reference Images are processed:', len(known_encodings), 'faces in the gallery')
 
 
 def stats(type_, method, k):
@@ -252,50 +271,7 @@ def stats(type_, method, k):
     false_non_match_rate /= NUM_IMG
     false_match_rate /= NUM_IMG * (NUM_IMG - 1)
 
-
     return [int(k), failure_to_acquire, false_match_rate, false_non_match_rate, true_positive]
-
-
-def stats_(method, k):
-    PATH = TEST_PATH + '/' + method + '/' + str(k)
-    FTA = 0  # FAILURE TO ACQUIRE
-    FMR = 0  # FALSE MATCH RATE
-    FNMR = 0  # FALSE NONMATCH RATE
-    TP = 0  # True Positive
-    for indx in range(0, len(known_encodings)):
-        unknown_image = face_recognition.load_image_file(PATH + '/' +
-                                                         str(indx) + '.png')
-
-        unknown_face_encoding = _face_encodings_(unknown_image, num_jitters=1)[0]
-        # results = face_recognition.compare_faces(gallery_encoding[1],
-        #                                 unknown_face_encoding)
-        results = face_recognition.compare_faces(known_encodings,
-                                                 unknown_face_encoding, )
-
-        if not True in results: FTA += 1
-        FMR += sum(results)
-        if not results[indx]:
-            FNMR += 1
-        if results[indx] == True:
-            FMR -= 1
-            TP += 1
-
-    FTA /= NUM_IMG
-    FNMR /= NUM_IMG
-    FMR /= NUM_IMG * (NUM_IMG - 1)
-
-    print('Finished:', k,
-          '| FAILURE TO ACQUIRE', FTA,
-          '| FALSE NONMATCH:', FNMR,
-          '| FALSE MATCH', FMR,
-          '| TP', TP)
-    if TP == 0 and len(known_encodings)==1:
-        FTA= 1
-        FMR = 0
-
-
-
-    return [k, FTA, FNMR, FMR, TP]
 
 
 if __name__ == '__main__':
